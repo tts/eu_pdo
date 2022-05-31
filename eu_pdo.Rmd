@@ -36,7 +36,7 @@ Only there should not be any products on sale with that name. Particularly not i
 
 There are no truffles in Queso Manchego. 
 
-"This do *is* cheese from La Mancha region, and made of lamb milk but, alas, we are not allowed to call it Manchego", said the seller. Fair enough.
+"This *is* cheese from La Mancha region, and it's made of lamb milk, but we are not allowed to call it Manchego", said the seller. Fair enough.
 
 Europe is all about cheese (and wine). On its [informative page on registered names ](https://www.ruokavirasto.fi/en/companies/food-sector/production/food-information/scheme-for-registration-of-names/) The Finnish Food Authority (Ruokavirasto) knows that from all PDO protected products, cheeses form the majority.
 
@@ -50,7 +50,7 @@ TL;DR: a bit hard.
 
 The [eAmbrosia register](https://ec.europa.eu/info/food-farming-fisheries/food-safety-and-quality/certification/quality-labels/geographical-indications-register/) gives overall statistics and a rapid overview by country, but it is fairly complicated to navigate when all one is really interested in is the product details, not the official documents surrounding them. That said, eAmbrosia *is* a legal register, with all the quirks and complexities it entails. 
 
-But EU officials are listening. 
+But, EU officials are listening. 
 
 Shortly after eAmbrosia was launched in early 2020, a new register was already pudding. [GIview](https://www.tmdn.org/giview/) was opened in November 2020, and as the [news had it](https://ec.europa.eu/info/news/new-search-database-geographical-indications-eu-2020-nov-25_en) (bold by me)
 
@@ -77,7 +77,7 @@ A short personal detour.
 
 When the SPARQL package was young, I was asked to write a tutorial-type of blog post for the then active [Linked Science](http://linkedscience.org/about/) titled [An interactive R Shiny application on data.aalto.fi lectures](http://linkedscience.org/tutorials/an-interactive-r-shiny-application-on-data-aalto-fi-lectures/) Just about everything described in and linked from that text is today outdated and/or broken, although the core idea might still have some value. 2013 was really the year of SPARQL, and ditto the EU. For example, I spent a fair amount of time collecting information about Finnish AV resources in [Europeana](https://www.europeana.eu/en), resulting to few blog postings in [March 2013](http://tuijasonkkila.fi/blog/2013/03/) (en/fi).
 
-[Registering a custom language engine](https://bookdown.org/yihui/rmarkdown-cookbook/custom-engine.html) is a novel concept to me. It defines a chunk of code that you can then run via a function call from another chunk. This is very handy, although I couldn't prevent the chunk from evaluating every time the document was knitted. Probably my bad. Anyway, as a brute-force solution, I commented here the calling chunk, which is basically the SPARQL query. 
+[Registering a custom language engine](https://bookdown.org/yihui/rmarkdown-cookbook/custom-engine.html) in R Markdown is a novel concept to me. What it does is that it defines a chunk of code that you can then run via a function call from another chunk. Very handy, although I couldn't prevent the chunk from evaluating every time the document was knitted. Probably my bad. Anyway, as a brute-force solution, I comment below the calling chunk, which is basically the SPARQL query. 
 
 The `knit_engines$set` code below is verbatim from André.
 
@@ -112,6 +112,7 @@ knitr::knit_engines$set(sparql = function(options) {
 })
 ```
 
+The SPARQL query is a simplified version of Selja's [financial_domain_sparql_2019-01-07.rq](https://github.com/seljaseppala/eu_corpus_compiler/blob/master/queries/sparql_queries/financial_domain_sparql_2019-01-07.rq), with a different set of EUROVOC descriptors.
 
 ```{sparql output.var ="queryres_csv", endpoint = "http://publications.europa.eu/webapi/rdf/sparql"}
 # PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
@@ -142,21 +143,26 @@ knitr::knit_engines$set(sparql = function(options) {
 #   ?exp cdm:expression_uses_language <http://publications.europa.eu/resource/authority/language/ENG>. 
 #   ?exp cdm:expression_title ?title .  
 #   
-#   FILTER( contains(?title, "PDO") || contains(?title, "Publication of an application for registration of a name pursuant") )	
+#   FILTER( contains(?title, "PDO") || 
+#           contains(?title, "Publication of an application for registration of a name pursuant") )	
 #   FILTER( !contains(LCASE(?title), "written question") )
 # 
+#   # Replace '(EU)' and '(EC)' with %eu% so that they don't interfere the next BIND.
+#   # There are more brackets elsewhere but clean them later
 #   BIND (REPLACE(?title, "(\\(E[UC]\\))", "%eu%") AS ?noeu)
-# 
+#   
+#   # Product name is usually between (), [] or ‘’ (but can also be without)
 #   BIND (REPLACE(str(?noeu), "(.*?)[\\(\\[\\‘]([^\\)\\]]*)[\\)\\]\\’]", "$2") AS ?prod) 
 #   
+#   # Basic cleaning
 #   BIND (REPLACE(str(?prod), "\\(PDO.*", "") AS ?product) 
 # }
 # GROUP BY ?work
-# LIMIT 10 # 1000
+# LIMIT 1000
 # OFFSET 0
 ```
 
-The result needs a fair bit of work before product names are nice and clean. This is just a modest start.
+The result needs a fair bit of work before product names are nice and clean. This is a modest start.
 
 ```{r, attr.source='.numberLines'}
 queryres_csv <- read.csv("res.csv")
@@ -175,11 +181,13 @@ cleaned <- queryres_csv %>%
 
 ```
 
-In eAmbrosia, the number of PDO registered foodstuff is around 670. My query returns, after some cleaning and deduplication, 600. Not bad, given that the list of [EUROVOCs](https://op.europa.eu/fr/web/eu-vocabularies) is somewhat arbitrary, and FILTER expressions even more so. EUROVOC descriptors are taken from few example PDO items in the EUR-Lex register. Classifications are listed there on the *Document information* page.
+In eAmbrosia, the number of PDO registered foodstuff is around 670. After some cleaning and deduplication, my query returns 600. Not bad, given that the list of [EUROVOCs](https://op.europa.eu/fr/web/eu-vocabularies) is somewhat arbitrary, and FILTER expressions even more so. EUROVOC descriptors are taken from few example PDO items in the EUR-Lex register. Classifications are listed there on the *Document information* page.
 
-From Finland's five PDO products my query returns all except the oldest one (1997), the potato variety **Lapin Puikula**. [Its information page](https://ec.europa.eu/info/food-farming-fisheries/food-safety-and-quality/certification/quality-labels/geographical-indications-register/details/EUGI00000013360) in eAmbrosia looks different. To start with, there is no publication date, only a link to the Official Journal acting as the legal instrument. Also, there is a separate summary sheet in PDF. I suspect that the workflow has changed since the 90's. Perhaps all the missing products belong to this older layer? Arrange all relevant eAmbrosia rows by registration date and you'll notice that around half of them are pre-2000.
+From Finland's five PDO products my query returns all except the oldest one (1997), the potato variety **Lapin Puikula**. [Its information page](https://ec.europa.eu/info/food-farming-fisheries/food-safety-and-quality/certification/quality-labels/geographical-indications-register/details/EUGI00000013360) in eAmbrosia looks different. To start with, there is no publication date, only a link to the Official Journal that acts as the legal instrument. A separate PDF summary sheet is available; it is a two-paged, faxed application form, scanned, and saved in the register. 
 
-As a side note, the product names reflect nicely the richness of European languages. English surely plays a minor role here!
+I suspect that the PDO workflow has changed since the 90's. Perhaps all the missing products belong to this older layer? Arrange all relevant eAmbrosia rows by registration date and you'll notice that around half of them are pre-2000.
+
+As a side note, the product names reflect nicely the richness of European languages. English definitely plays a minor role here!
 
 OK, so how to proceed? I have a Cellar URI by product, nothing else. 
 
@@ -197,7 +205,7 @@ ids <- cleaned %>%
 
 ```
 
-Selja Seppälä has Python code that returns a zipped bundle of XML files by Cellar ID. I'll simplify her [process_range function](https://github.com/seljaseppala/eu_corpus_compiler/blob/master/get_cellar_docs.py#L73) a little, and download files.
+Selja Seppälä has Python code that returns a zipped bundle of XML files by Cellar ID. I'll simplify her [process_range](https://github.com/seljaseppala/eu_corpus_compiler/blob/master/get_cellar_docs.py#L73) function, and download files.
 
 ```{r}
 library(reticulate)
