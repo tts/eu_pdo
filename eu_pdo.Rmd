@@ -1,0 +1,388 @@
+---
+title: "The search after PDO product descriptions"
+author: "Tuija Sonkkila"
+runtime: shiny
+output:
+  html_document:
+    highlight: tango
+    code_folding: hide
+resource_files:
+- cheese.jpg
+---
+
+<style type="text/css">
+  body{
+  font-size: 12pt;
+}
+</style>
+
+```{r include = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = FALSE)
+
+library(dplyr)
+```
+
+## There is cheese and then there is cheese
+
+![Cheese](cheese.jpg)
+You never know when a small piece of casual information develops to a journey into something a lot bigger. This time, it was a remark by a local cheese seller. The other day, I went to buy a slice of *truffle Manchego*, a cheese variety you'll find multiple hits when searching. A delicious type of Spanish cheese with distinctive, irregular dark strains of truffle.
+
+Only there should not be any products on sale with that name. Particularly not inside the EU. 
+
+**Queso Manchego** is one of the quality names of food products in the EU. It is registered as PDO, [Protected designation of origin](https://ec.europa.eu/info/food-farming-fisheries/food-safety-and-quality/certification/quality-labels/quality-schemes-explained_en#pdo) with well-defined characteristics published as a product description, in the case of Manchego available e.g [in this minor amendment](https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX%3A32012R0129), published in the Official Journal of the European Union in 2012. For the jurisdiction enthusiasts, the legal act behind PDO is called [Council Regulation (EC) No 510/2006 of 20 March 2006 on the protection of geographical indications and designations of origin for agricultural products and foodstuffs](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32006R0510)
+
+There are no truffles in Queso Manchego. 
+
+"This do *is* cheese from La Mancha region, and made of lamb milk but, alas, we are not allowed to call it Manchego", said the seller. Fair enough.
+
+Europe is all about cheese (and wine). On its [informative page on registered names ](https://www.ruokavirasto.fi/en/companies/food-sector/production/food-information/scheme-for-registration-of-names/) The Finnish Food Authority (Ruokavirasto) knows that from all PDO protected products, cheeses form the majority.
+
+## PDO as non-fiction
+
+Product descriptions are fascinating reading. Like how world phenomena is put into statements to program a Star Trek replicator.
+
+Why not make a little app to collect at least part of these descriptions? How hard can it be?
+
+TL;DR: a bit hard.
+
+The [eAmbrosia register](https://ec.europa.eu/info/food-farming-fisheries/food-safety-and-quality/certification/quality-labels/geographical-indications-register/) gives overall statistics and a rapid overview by country, but it is fairly complicated to navigate when all one is really interested in is the product details, not the official documents surrounding them. That said, eAmbrosia *is* a legal register, with all the quirks and complexities it entails. 
+
+But EU officials are listening. 
+
+Shortly after eAmbrosia was launched in early 2020, a new register was already pudding. [GIview](https://www.tmdn.org/giview/) was opened in November 2020, and as the [news had it](https://ec.europa.eu/info/news/new-search-database-geographical-indications-eu-2020-nov-25_en) (bold by me)
+
+> A special feature of GIview is that it is made open to national authorities and to producer groups to upload extended data, such as the contact data of the GI producer groups and control bodies, maps, photographs of the product, **product description**, the geographical area, sustainability statements, and other information.
+
+From between the lines I read that linking the product and its description is not particularly easy. I suspect that the job needs human intervention, or at least quality control. From the EU's point of view, a convenient, cost-effective, and logical way to mobilize humans is of course to let the member countries themselves come to help. After all, it is in their interest to promote their specialties.
+
+## Linked data
+
+While I was still pondering whether I could somehow make use of the details in the downloaded eAmbrosia data set to build a valid URL to the description - file number and Official Journal details looked promising but didn't help  - I noticed a [retweet](https://twitter.com/LearningSPARQL/status/1524068114954076161) by [LearningSPARQL](https://twitter.com/LearningSPARQL). There is a SPARQL endpoint to the semantic repository of EU publications! With an [extensive documentation](https://op.europa.eu/en/publication-detail/-/publication/50ecce27-857e-11e8-ac6a-01aa75ed71a1/language-en/format-PDF/source-256282593.?pk_campaign=promote&pk_medium=tw)!
+
+SPARQL itself isn't difficult but the hard part is the data model of the target of the query. You need to have a grasp of the basic vocabulary, and some understanding of the life cycle of the object it describes. I had neither. 
+
+Luckily, two GitHub repositories came to help in showing with examples what we are talking about: [EU corpus compiler](https://github.com/seljaseppala/eu_corpus_compiler) by Selja Seppälä, and [repository benchmarking scripts](https://github.com/gatemezing/posb) by Ghislain Atemezing.
+
+## Setting up the pipeline
+
+André Ourednik has published a nice slide deck [Execute SPARQL chunks in R Markdown](https://ourednik.info/maps/2021/12/14/execute-sparql-chunks-in-r-markdown/) where he first mentions that there are two options to access SPARQL data from within R: with the generic packages http + curl, or with the SPARQL package. He prefers the former, which is understandable because
+
+> The SPARQL package is a nice wrapper, but it dates back to 2013 and it doesn’t offer 
+> important parameters for HTTP(S) communication, such as setting proxies or headers
+
+A short personal detour. 
+
+When the SPARQL package was young, I was asked to write a tutorial-type of blog post for the then active [Linked Science](http://linkedscience.org/about/) titled [An interactive R Shiny application on data.aalto.fi lectures](http://linkedscience.org/tutorials/an-interactive-r-shiny-application-on-data-aalto-fi-lectures/) Just about everything described in and linked from that text is today outdated and/or broken, although the core idea might still have some value. 2013 was really the year of SPARQL, and ditto the EU. For example, I spent a fair amount of time collecting information about Finnish AV resources in [Europeana](https://www.europeana.eu/en), resulting to few blog postings in [March 2013](http://tuijasonkkila.fi/blog/2013/03/) (en/fi).
+
+[Registering a custom language engine](https://bookdown.org/yihui/rmarkdown-cookbook/custom-engine.html) is a novel concept to me. It defines a chunk of code that you can then run via a function call from another chunk. This is very handy, although I couldn't prevent the chunk from evaluating every time the document was knitted. Probably my bad. Anyway, as a brute-force solution, I commented here the calling chunk, which is basically the SPARQL query. 
+
+The `knit_engines$set` code below is verbatim from André.
+
+```{r, attr.source='.numberLines'}
+library(httr)
+library(magrittr)
+library(xml2)
+library(data.table)
+
+knitr::knit_engines$set(sparql = function(options) {
+  code <- paste(options$code, collapse = '\n')
+  ep<- options$endpoint
+  qm <- paste(ep, "?", "query", "=", gsub("\\+", "%2B", URLencode(code, reserved = TRUE)), "", sep = "")
+  varname <- options$output.var
+  if(is.null(options$output.type)) {
+    output_type <- "csv"
+  } else {
+    output_type <- options$output.type
+  }
+  if (output_type=="list") {
+    out <- GET(qm,timeout(60)) %>% read_xml() %>% as_list()
+    nresults <- length(out$sparql$results)
+  } else {
+    queryres_csv <- GET(qm,timeout(60), add_headers(c(Accept = "text/csv")))
+    out <- queryres_csv$content %>% rawToChar %>% textConnection %>% read.csv
+    nresults <- nrow(out)
+  }
+  chunkout <- ifelse(!is.null(varname),qm,out)
+  text <- paste("The SPARQL query returned",nresults,"results")
+  if (!is.null(varname)) assign(varname, out, envir = knitr::knit_global())
+  knitr::engine_output(options, options$code, chunkout, extra=text)
+})
+```
+
+
+```{sparql output.var ="queryres_csv", endpoint = "http://publications.europa.eu/webapi/rdf/sparql"}
+# PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
+# PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+# PREFIX dc: <http://purl.org/dc/elements/1.1/>
+# PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+# PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+# PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# PREFIX owl: <http://www.w3.org/2002/07/owl#>
+# 
+# SELECT DISTINCT 
+# ?work as ?cellarURIs ?product ?title 
+# 
+# WHERE 
+# {
+#   ?work cdm:work_is_about_concept_eurovoc ?subject . 
+#   ?subject skos:prefLabel ?subjectLabel .
+#   
+#   FILTER (lang(?subjectLabel) = "en")			
+#   
+#   FILTER( ?subject = <http://eurovoc.europa.eu/3173>
+#             || ?subject = <http://eurovoc.europa.eu/5573>
+#             || ?subject = <http://eurovoc.europa.eu/2735>
+#             || ?subject = <http://eurovoc.europa.eu/1686>
+#             || ?subject = <http://eurovoc.europa.eu/2771> ) . 
+#  
+#   ?exp cdm:expression_belongs_to_work ?work . 
+#   ?exp cdm:expression_uses_language <http://publications.europa.eu/resource/authority/language/ENG>. 
+#   ?exp cdm:expression_title ?title .  
+#   
+#   FILTER( contains(?title, "PDO") || contains(?title, "Publication of an application for registration of a name pursuant") )	
+#   FILTER( !contains(LCASE(?title), "written question") )
+# 
+#   BIND (REPLACE(?title, "(\\(E[UC]\\))", "%eu%") AS ?noeu)
+# 
+#   BIND (REPLACE(str(?noeu), "(.*?)[\\(\\[\\‘]([^\\)\\]]*)[\\)\\]\\’]", "$2") AS ?prod) 
+#   
+#   BIND (REPLACE(str(?prod), "\\(PDO.*", "") AS ?product) 
+# }
+# GROUP BY ?work
+# LIMIT 10 # 1000
+# OFFSET 0
+```
+
+The result needs a fair bit of work before product names are nice and clean. This is just a modest start.
+
+```{r, attr.source='.numberLines'}
+queryres_csv <- read.csv("res.csv")
+
+cleaned <- queryres_csv %>% 
+  mutate(product = stringr::str_trim(product),
+         product = gsub("^1d", "", product), 
+         product = gsub("â€˜?", "", product),
+         product = gsub("Ã¶", "ö", product),
+         product = gsub("Ã¤", "ä", product),
+         product = gsub("Ã¥", "å", product)) %>% 
+  filter(!grepl("%eu%|PDOPDOPDOPDOPDOPDOPDOPDOPGIPGI|PGIPDOPGI|^2a", product)) %>% 
+  filter(!grepl("Judgment of the Court|Addendum to", title)) %>%  
+  distinct(product, .keep_all = TRUE) %>% 
+  arrange(product)
+
+```
+
+In eAmbrosia, the number of PDO registered foodstuff is around 670. My query returns, after some cleaning and deduplication, 600. Not bad, given that the list of [EUROVOCs](https://op.europa.eu/fr/web/eu-vocabularies) is somewhat arbitrary, and FILTER expressions even more so. EUROVOC descriptors are taken from few example PDO items in the EUR-Lex register. Classifications are listed there on the *Document information* page.
+
+From Finland's five PDO products my query returns all except the oldest one (1997), the potato variety *Lapin Puikula*. [Its information page](https://ec.europa.eu/info/food-farming-fisheries/food-safety-and-quality/certification/quality-labels/geographical-indications-register/details/EUGI00000013360) in eAmbrosia looks different. To start with, there is no publication date, only a link to the Official Journal acting as the legal instrument. Also, there is a separate summary sheet in PDF. I suspect that the workflow has changed since the 90's. Perhaps all the missing products belong to this older layer? Arrange all relevant eAmbrosia rows by registration date and you'll notice that around half of them are pre-2000.
+
+As a side note, the product names reflect nicely the richness of European languages. English surely plays a minor role here!
+
+OK, so how to proceed? I have a Cellar URI by product, nothing else. 
+
+## Finland, Sweden and Queso Manchego
+
+Let's make life easier, and subset data just to Finnish and Swedish products (plus Queso Manchego), and select only the ID part of the Cellar URIs. 
+
+Why Finland and Sweden? Well, [why not](https://www.nato.int/cps/en/natohq/news_195468.htm)?
+
+```{r, attr.source='.numberLines'}
+ids <- cleaned %>% 
+  dplyr::filter(grepl("Lapin|Kitkan|Wrångebäcksost|Vänerlöjrom|Hånnlamb|Upplandskubb|Kalix Löjrom|Manchego", product)) %>% 
+  dplyr::select(cellarURIs) %>% 
+  dplyr::mutate(cellarURIs = gsub("^.*/", "", cellarURIs))
+
+```
+
+Selja Seppälä has Python code that returns a zipped bundle of XML files by Cellar ID. I'll simplify her [process_range function](https://github.com/seljaseppala/eu_corpus_compiler/blob/master/get_cellar_docs.py#L73) a little, and download files.
+
+```{r}
+library(reticulate)
+```
+
+```{python}
+import os
+import pandas as pd
+import zipfile
+import requests
+import io
+```
+
+```{python, attr.source='.numberLines'}
+
+def rest_get_call(id):
+  url = 'http://publications.europa.eu/resource/cellar/' + id
+  headers = {
+    'Accept': "application/zip;mtype=fmx4, application/xml;mtype=fmx4, application/xhtml+xml, text/html, text/html;type=simplified, application/msword, text/plain, application/xml;notice=object",
+    'Accept-Language': "eng",
+    'Content-Type': "application/x-www-form-urlencoded",
+    'Host': "publications.europa.eu"#
+    }
+  response = requests.request("GET", url, headers=headers)
+  return response
+
+
+def download_zip(response, folder_path):
+  z = zipfile.ZipFile(io.BytesIO(response.content))
+  z.extractall(folder_path)
+  
+  
+def process_range(df, folder_path):
+  
+  for id in df['cellarURIs']:
+    response = rest_get_call(id)
+    
+    if 'zip' in response.headers['Content-Type']:
+      
+      download_zip(response, folder_path)
+      
+    else:
+      out_file = folder_path + '/' + id + '.html'
+      os.makedirs(os.path.dirname(out_file), exist_ok=True)
+      with open(out_file, 'w') as f:
+        f.write(response.text)
+            
+```
+
+```{python}
+id_df = r.ids
+
+process_range(id_df, "data")
+```
+
+## Building up the URL
+
+From the three XML files returned by product, the one with the root node `ACT` includes the date, number, and the starting page of the Official Journal where the initial "pursuant" step of the product was published. That's my present hypothesis anyway, after a number of trials and errors.
+
+The relevant XML element is `REF.DOC.OJ`, usually as a child element of `ACT/PREAMBLE/GR.CONSID/CONSID/NP/TXT/NOTE/P/`, and with its `COLL` attribute having the value of `C`. As mockup XPath expressions the URL building blocks are thus as follows:
+
+* Year
+  + `substring(//REF.DOC.OJ[@COLL='C']/@DATE.PUB, 1, 4)`
+
+* Number
+  + `//REF.DOC.OJ[@COLL='C']/@NO.OJ)`
+
+* First page, assuming here that the first page <10 (which is not always the case)
+  + `concat("000", //REF.DOC.OJ[@COLL='C']/@PAGE.FIRST, "_01")`
+
+Example from `data/L_2009112EN.01000301.xml` about *Lapin Poron liha*, meat of Lapland reindeer.
+
+`<REF.DOC.OJ COLL="C" DATE.PUB="20080125" NO.OJ="019" PAGE.FIRST="22">OJ C 19, 25.1.2008, p. 22</REF.DOC.OJ>`
+
+The TOC link would be [http://publications.europa.eu/resource/oj/JOC_2008_019_R_TOC](http://publications.europa.eu/resource/oj/JOC_2008_019_R_TOC) and the text, starting from the page 22 (thumbs up that the final number is always 1, whatever it stands for) [http://publications.europa.eu/resource/oj/JOC_2008_019_R_0022_01](http://publications.europa.eu/resource/oj/JOC_2008_019_R_0022_01). Yes, this works, and the description is there too!
+
+## Parsing XML
+
+```{r, attr.source='.numberLines'}
+library(xml2)
+
+parsexml <- function(file) {
+  xml <- read_xml(file)
+  title <- xml_find_first(xml, "./TITLE/TI/P[3]") %>% 
+    xml_text()
+  datepub <- xml_find_first(xml, ".//REF.DOC.OJ[@COLL='C']/@DATE.PUB") %>% 
+    xml_text()
+  nr <- xml_find_first(xml, ".//REF.DOC.OJ[@COLL='C']/@NO.OJ") %>% 
+    xml_text()
+  startpage <- xml_find_first(xml, ".//REF.DOC.OJ[@COLL='C']/@PAGE.FIRST") %>% 
+    xml_text()
+  
+  return(data.frame(title, datepub, nr, startpage, stringsAsFactors = FALSE))
+}
+
+```
+
+Next I'll loop over all XML files in the `data` sub-directory, gather all basic information, and then build the URLs.
+
+```{r, attr.source='.numberLines'}
+
+pdo_info <- list.files(path = "./data/", pattern = "*[0-9].xml", full.names = TRUE) %>% 
+  purrr::map_dfr(~parsexml(.)) %>% 
+  dplyr::filter(!is.na(.)) %>% # Every other row is NA because the XML file is not the correct one
+  mutate(oj_title = gsub("^.*?\\(([^(]*).*", "\\1", title),
+         oj_year = substr(datepub, 1, 4),
+         oj_nr = ifelse(nchar(nr) == 1, paste0("00", nr), 
+                        ifelse(nchar(nr) == 2, paste0("0", nr),
+                               nr)),
+         oj_page = ifelse(nchar(startpage) == 1, paste0("000", startpage), 
+                        ifelse(nchar(startpage) == 2, paste0("00", startpage),
+                               ifelse(nchar(startpage) == 3, paste0("0", startpage),
+                                      startpage))),
+         oj_toc_url = paste0("http://publications.europa.eu/resource/oj/JOC_",
+                             oj_year, "_",
+                             oj_nr, "_R_TOC"),
+         oj_page_url = paste0("http://publications.europa.eu/resource/oj/JOC_",
+                         oj_year, "_",
+                         oj_nr, "_R_",
+                         oj_page, "_01"))
+
+write.csv(pdo_info, "pdo_info.csv", row.names = FALSE)
+
+```
+
+So far so good - but then I noticed that a few of the URLs were not correct. After some detective work, another type of URL template emerged that seemed to be OK, at least for my tiny sample here:
+
+`https://eur-lex.europa.eu/legal-content/EN/AUTO/?uri=uriserv:OJ.C_.[year].[nr].01.[page].01.ENG`
+
+Switching to this new format had some consequences to the final HTML rendering below. The `iframe` solution I already had in place, i.e. the EU publication page was embedded, become now impossible due to the [X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options) defined by this domain. So, no embedding, only a link to follow.
+
+![](xframe.png)
+
+
+```{r, attr.source='.numberLines'}
+pdo_info <- read.csv("pdo_info.csv", 
+                     stringsAsFactors = FALSE, 
+                     colClasses = rep("character", 10))
+
+pdo_info <- pdo_info %>% 
+  mutate(oj_page_url_new = paste0("https://eur-lex.europa.eu/legal-content/EN/AUTO/?uri=uriserv:OJ.C_.",
+                                  oj_year, ".",
+                                  oj_nr, ".01.",
+                                  oj_page, ".01.ENG"))
+
+write.csv(pdo_info, "pdo_info.csv", row.names = FALSE)
+
+```
+
+With this new set of URL's available, the simply Shiny app below lets us now to select one product at a time, open its page in a new browser tab, and read all the amazing details.
+
+
+```{r echo=FALSE, eval=TRUE}
+pdo_info <- read.csv("pdo_info.csv", 
+                     stringsAsFactors = FALSE, 
+                     colClasses = rep("character", 11))
+
+pdo_info <- pdo_info %>% 
+  mutate(oj_title = iconv(oj_title, from = "ISO-8859-1", to = "UTF-8"))
+
+titles <- sort(as.vector(pdo_info$oj_title))
+
+shinyApp(
+
+  ui = fluidPage(
+    selectInput(
+      inputId = "pdo", 
+      label = "Select product", 
+      choices = titles, 
+      multiple = FALSE, 
+      selected = "Queso Manchego "),
+    uiOutput("page")
+  ),
+
+  server = function(input, output) {
+    
+    url_chosen <- reactive({
+      url <- pdo_info %>% 
+        filter(oj_title == input$pdo) %>% 
+        select(oj_page_url_new)
+    })
+    
+    output$page <- renderUI({
+      HTML(paste0('<a href=', url_chosen(), ' target="_blank">', input$pdo , '</a>'))
+     })
+  }
+  
+)
+
+```
+
