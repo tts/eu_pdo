@@ -6,9 +6,10 @@ output:
   html_document:
     highlight: tango
     code_folding: hide
-    toc: true
-    toc_float: true
-
+    toc: yes
+    toc_float: yes
+resource_files:
+- cheese.jpg
 ---
 
 <style type="text/css">
@@ -397,3 +398,6 @@ shinyApp(
 
 ```
 
+## Code
+
+The original R Markdown document of this HTML is in [GitHub](https://github.com/tts/eu_pdo/blob/main/eu_pdo.Rmd).
