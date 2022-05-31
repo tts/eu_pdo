@@ -25,7 +25,9 @@ library(dplyr)
 ## There is cheese and then there is cheese
 
 ![Cheese](cheese.jpg)
-You never know when a small piece of casual information develops to a journey into something a lot bigger. This time, it was a remark by a local cheese seller. The other day, I went to buy a slice of *truffle Manchego*, a cheese variety you'll find multiple hits when searching. A delicious type of Spanish cheese with distinctive, irregular dark strains of truffle.
+You never know when a small piece of casual information develops to a journey into something a lot bigger. This time, it was a remark by a local cheese seller. 
+
+The other day, I went to buy a slice of *truffle Manchego*, a cheese variety you'll find multiple hits when searching. A delicious type of Spanish cheese with distinctive, irregular dark strains of truffle.
 
 Only there should not be any products on sale with that name. Particularly not inside the EU. 
 
@@ -324,7 +326,7 @@ So far so good - but then I noticed that a few of the URLs were not correct. Aft
 
 `https://eur-lex.europa.eu/legal-content/EN/AUTO/?uri=uriserv:OJ.C_.[year].[nr].01.[page].01.ENG`
 
-Switching to this new format had some consequences to the final HTML rendering below. The `iframe` solution I already had in place, i.e. the EU publication page was embedded, become now impossible due to the [X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options) defined by this domain. So, no embedding, only a link to follow.
+Switching to this new format had some consequences to the final HTML rendering below. The `iframe` solution I already had in place, i.e. the EU publication page was embedded, became now impossible due to the [X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options) defined by this domain. So, no embedding, only a link to follow.
 
 ![](xframe.png)
 
@@ -344,7 +346,7 @@ write.csv(pdo_info, "pdo_info.csv", row.names = FALSE)
 
 ```
 
-With this new set of URL's available, the simply Shiny app below lets us now to select one product at a time, open its page in a new browser tab, and read all the amazing details.
+With this new set of URL's available, the simple Shiny app below lets us now to select one product at a time, open its page in a new browser tab, and read all the amazing details.
 
 
 ```{r echo=FALSE, eval=TRUE}
