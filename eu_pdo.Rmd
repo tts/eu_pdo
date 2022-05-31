@@ -57,7 +57,7 @@ From between the lines I read that linking the product and its description is no
 
 ## Linked data
 
-While I was still pondering whether I could somehow make use of the details in the downloaded eAmbrosia data set to build a valid URL to the description - file number and Official Journal details looked promising but didn't help  - I noticed a [retweet](https://twitter.com/LearningSPARQL/status/1524068114954076161) by [LearningSPARQL](https://twitter.com/LearningSPARQL). There is a SPARQL endpoint to the semantic repository of EU publications! With an [extensive documentation](https://op.europa.eu/en/publication-detail/-/publication/50ecce27-857e-11e8-ac6a-01aa75ed71a1/language-en/format-PDF/source-256282593.?pk_campaign=promote&pk_medium=tw)!
+While I was still pondering whether I could somehow make use of the details in the downloaded eAmbrosia data set to build a valid URL to the description - file number and Official Journal details looked promising but didn't help - I noticed a [retweet](https://twitter.com/LearningSPARQL/status/1524068114954076161) by [LearningSPARQL](https://twitter.com/LearningSPARQL). There is a SPARQL endpoint to the semantic repository of EU publications! With an [extensive documentation](https://op.europa.eu/en/publication-detail/-/publication/50ecce27-857e-11e8-ac6a-01aa75ed71a1/language-en/format-PDF/source-256282593.?pk_campaign=promote&pk_medium=tw)!
 
 SPARQL itself isn't difficult but the hard part is the data model of the target of the query. You need to have a grasp of the basic vocabulary, and some understanding of the life cycle of the object it describes. I had neither. 
 
@@ -129,11 +129,11 @@ knitr::knit_engines$set(sparql = function(options) {
 #   
 #   FILTER (lang(?subjectLabel) = "en")			
 #   
-#   FILTER( ?subject = <http://eurovoc.europa.eu/3173>
-#             || ?subject = <http://eurovoc.europa.eu/5573>
-#             || ?subject = <http://eurovoc.europa.eu/2735>
-#             || ?subject = <http://eurovoc.europa.eu/1686>
-#             || ?subject = <http://eurovoc.europa.eu/2771> ) . 
+#   FILTER( ?subject = <http://eurovoc.europa.eu/3173>     # designation of origin
+#        || ?subject = <http://eurovoc.europa.eu/5573>     # product designation
+#        || ?subject = <http://eurovoc.europa.eu/2735>     # foodstuff
+#        || ?subject = <http://eurovoc.europa.eu/1686>     # location of production
+#        || ?subject = <http://eurovoc.europa.eu/2771> ) . # originating product
 #  
 #   ?exp cdm:expression_belongs_to_work ?work . 
 #   ?exp cdm:expression_uses_language <http://publications.europa.eu/resource/authority/language/ENG>. 
