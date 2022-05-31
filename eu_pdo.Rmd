@@ -6,8 +6,9 @@ output:
   html_document:
     highlight: tango
     code_folding: hide
-resource_files:
-- cheese.jpg
+    toc: true
+    toc_float: true
+
 ---
 
 <style type="text/css">
@@ -22,7 +23,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = FALSE)
 library(dplyr)
 ```
 
-## There is cheese and then there is cheese
+## There is cheese and cheese
 
 ![Cheese](cheese.jpg)
 You never know when a small piece of casual information develops to a journey into something a lot bigger. This time, it was a remark by a local cheese seller. 
@@ -176,13 +177,13 @@ cleaned <- queryres_csv %>%
 
 In eAmbrosia, the number of PDO registered foodstuff is around 670. My query returns, after some cleaning and deduplication, 600. Not bad, given that the list of [EUROVOCs](https://op.europa.eu/fr/web/eu-vocabularies) is somewhat arbitrary, and FILTER expressions even more so. EUROVOC descriptors are taken from few example PDO items in the EUR-Lex register. Classifications are listed there on the *Document information* page.
 
-From Finland's five PDO products my query returns all except the oldest one (1997), the potato variety *Lapin Puikula*. [Its information page](https://ec.europa.eu/info/food-farming-fisheries/food-safety-and-quality/certification/quality-labels/geographical-indications-register/details/EUGI00000013360) in eAmbrosia looks different. To start with, there is no publication date, only a link to the Official Journal acting as the legal instrument. Also, there is a separate summary sheet in PDF. I suspect that the workflow has changed since the 90's. Perhaps all the missing products belong to this older layer? Arrange all relevant eAmbrosia rows by registration date and you'll notice that around half of them are pre-2000.
+From Finland's five PDO products my query returns all except the oldest one (1997), the potato variety **Lapin Puikula**. [Its information page](https://ec.europa.eu/info/food-farming-fisheries/food-safety-and-quality/certification/quality-labels/geographical-indications-register/details/EUGI00000013360) in eAmbrosia looks different. To start with, there is no publication date, only a link to the Official Journal acting as the legal instrument. Also, there is a separate summary sheet in PDF. I suspect that the workflow has changed since the 90's. Perhaps all the missing products belong to this older layer? Arrange all relevant eAmbrosia rows by registration date and you'll notice that around half of them are pre-2000.
 
 As a side note, the product names reflect nicely the richness of European languages. English surely plays a minor role here!
 
 OK, so how to proceed? I have a Cellar URI by product, nothing else. 
 
-## Finland, Sweden and Queso Manchego
+## FI, SE and Manchego (ES)
 
 Let's make life easier, and subset data just to Finnish and Swedish products (plus Queso Manchego), and select only the ID part of the Cellar URIs. 
 
@@ -252,7 +253,7 @@ id_df = r.ids
 process_range(id_df, "data")
 ```
 
-## Building up the URL
+## The road to URL
 
 From the three XML files returned by product, the one with the root node `ACT` includes the date, number, and the starting page of the Official Journal where the initial "pursuant" step of the product was published. That's my present hypothesis anyway, after a number of trials and errors.
 
@@ -346,9 +347,9 @@ write.csv(pdo_info, "pdo_info.csv", row.names = FALSE)
 
 ```
 
-With this new set of URL's available, the simple Shiny app below lets us now to select one product at a time, open its page in a new browser tab, and read all the amazing details.
+With this new set of URLs available, the simple Shiny app below lets us now to select one product at a time, open its page in a new browser tab, and read all the amazing details. 
 
-
+## App
 ```{r echo=FALSE, eval=TRUE}
 pdo_info <- read.csv("pdo_info.csv", 
                      stringsAsFactors = FALSE, 
