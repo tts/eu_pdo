@@ -78,7 +78,7 @@ A short personal detour.
 
 When the SPARQL package was young, I was asked to write a tutorial-type of blog post for the then active [Linked Science](http://linkedscience.org/about/) titled [An interactive R Shiny application on data.aalto.fi lectures](http://linkedscience.org/tutorials/an-interactive-r-shiny-application-on-data-aalto-fi-lectures/) Just about everything described in and linked from that text is today outdated and/or broken, although the core idea might still have some value. 2013 was really the year of SPARQL, and ditto the EU. For example, I spent a fair amount of time collecting information about Finnish AV resources in [Europeana](https://www.europeana.eu/en), resulting to few blog postings in [March 2013](http://tuijasonkkila.fi/blog/2013/03/) (en/fi).
 
-[Registering a custom language engine](https://bookdown.org/yihui/rmarkdown-cookbook/custom-engine.html) in R Markdown is a novel concept to me. What it does is that it defines a chunk of code that you can then run via a function call from another chunk. Very handy, although I couldn't prevent the chunk from evaluating every time the document was knitted. Probably my bad. Anyway, as a brute-force solution, I comment below the calling chunk, which is basically the SPARQL query. 
+[Registering a custom language engine](https://bookdown.org/yihui/rmarkdown-cookbook/custom-engine.html) in R Markdown is a novel concept to me. What it does is that it defines a chunk of code that you can then run via a function call from another chunk. Very handy. 
 
 The `knit_engines$set` code below is verbatim from André.
 
@@ -116,51 +116,51 @@ knitr::knit_engines$set(sparql = function(options) {
 The SPARQL query is a simplified version of Selja's [financial_domain_sparql_2019-01-07.rq](https://github.com/seljaseppala/eu_corpus_compiler/blob/master/queries/sparql_queries/financial_domain_sparql_2019-01-07.rq), with a different set of EUROVOC descriptors.
 
 ```{sparql output.var ="queryres_csv", endpoint = "http://publications.europa.eu/webapi/rdf/sparql"}
-# PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
-# PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-# PREFIX dc: <http://purl.org/dc/elements/1.1/>
-# PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-# PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-# PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-# PREFIX owl: <http://www.w3.org/2002/07/owl#>
-# 
-# SELECT DISTINCT 
-# ?work as ?cellarURIs ?product ?title 
-# 
-# WHERE 
-# {
-#   ?work cdm:work_is_about_concept_eurovoc ?subject . 
-#   ?subject skos:prefLabel ?subjectLabel .
-#   
-#   FILTER (lang(?subjectLabel) = "en")			
-#   
-#   FILTER( ?subject = <http://eurovoc.europa.eu/3173>     # designation of origin
-#        || ?subject = <http://eurovoc.europa.eu/5573>     # product designation
-#        || ?subject = <http://eurovoc.europa.eu/2735>     # foodstuff
-#        || ?subject = <http://eurovoc.europa.eu/1686>     # location of production
-#        || ?subject = <http://eurovoc.europa.eu/2771> ) . # originating product
-#  
-#   ?exp cdm:expression_belongs_to_work ?work . 
-#   ?exp cdm:expression_uses_language <http://publications.europa.eu/resource/authority/language/ENG>. 
-#   ?exp cdm:expression_title ?title .  
-#   
-#   FILTER( contains(?title, "PDO") || 
-#           contains(?title, "Publication of an application for registration of a name pursuant") )	
-#   FILTER( !contains(LCASE(?title), "written question") )
-# 
-#   # Replace '(EU)' and '(EC)' with %eu% so that they don't interfere the next BIND.
-#   # There are more brackets elsewhere but clean them later
-#   BIND (REPLACE(?title, "(\\(E[UC]\\))", "%eu%") AS ?noeu)
-#   
-#   # Product name is usually between (), [] or ‘’ (but can also be without)
-#   BIND (REPLACE(str(?noeu), "(.*?)[\\(\\[\\‘]([^\\)\\]]*)[\\)\\]\\’]", "$2") AS ?prod) 
-#   
-#   # Basic cleaning
-#   BIND (REPLACE(str(?prod), "\\(PDO.*", "") AS ?product) 
-# }
-# GROUP BY ?work
-# LIMIT 1000
-# OFFSET 0
+PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+SELECT DISTINCT
+?work as ?cellarURIs ?product ?title
+
+WHERE
+{
+  ?work cdm:work_is_about_concept_eurovoc ?subject .
+  ?subject skos:prefLabel ?subjectLabel .
+
+  FILTER (lang(?subjectLabel) = "en")
+
+  FILTER( ?subject = <http://eurovoc.europa.eu/3173>     # designation of origin
+       || ?subject = <http://eurovoc.europa.eu/5573>     # product designation
+       || ?subject = <http://eurovoc.europa.eu/2735>     # foodstuff
+       || ?subject = <http://eurovoc.europa.eu/1686>     # location of production
+       || ?subject = <http://eurovoc.europa.eu/2771> ) . # originating product
+
+  ?exp cdm:expression_belongs_to_work ?work .
+  ?exp cdm:expression_uses_language <http://publications.europa.eu/resource/authority/language/ENG>.
+  ?exp cdm:expression_title ?title .
+
+  FILTER( contains(?title, "PDO") ||
+          contains(?title, "Publication of an application for registration of a name pursuant") )
+  FILTER( !contains(LCASE(?title), "written question") )
+
+  # Replace '(EU)' and '(EC)' with %eu% so that they don't interfere the next BIND.
+  # There are more brackets elsewhere but clean them later
+  BIND (REPLACE(?title, "(\\(E[UC]\\))", "%eu%") AS ?noeu)
+
+  # Product name is usually between (), [] or ‘’ (but can also be without)
+  BIND (REPLACE(str(?noeu), "(.*?)[\\(\\[\\‘]([^\\)\\]]*)[\\)\\]\\’]", "$2") AS ?prod)
+
+  # Basic cleaning
+  BIND (REPLACE(str(?prod), "\\(PDO.*", "") AS ?product)
+}
+GROUP BY ?work
+LIMIT 1000
+OFFSET 0
 ```
 
 The result needs a fair bit of work before product names are nice and clean. This is a modest start.
