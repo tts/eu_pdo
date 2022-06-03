@@ -20,8 +20,10 @@ resource_files:
 
 ```{r include = FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = FALSE)
+knitr::knit_engines$set(sparql = SPARQLchunks::eng_sparql)
 
 library(dplyr)
+library(SPARQLchunks)
 ```
 
 ## There is cheese and cheese
@@ -69,7 +71,7 @@ Luckily, two GitHub repositories came to help in showing with examples what we a
 
 ## Setting up the pipeline
 
-André Ourednik has published a nice slide deck [Execute SPARQL chunks in R Markdown](https://ourednik.info/maps/2021/12/14/execute-sparql-chunks-in-r-markdown/) where he first mentions that there are two options to access SPARQL data from within R: with the generic packages http + curl, or with the SPARQL package. He prefers the former, which is understandable because
+André Ourednik has published a nice slide deck [Execute SPARQL chunks in R Markdown](https://ourednik.info/maps/2021/12/14/execute-sparql-chunks-in-r-markdown/) where he first mentions^1^ that there are two options to access SPARQL data from within R: with the generic packages http + curl, or with the SPARQL package. He prefers the former, which is understandable because
 
 > The SPARQL package is a nice wrapper, but it dates back to 2013 and it doesn’t offer 
 > important parameters for HTTP(S) communication, such as setting proxies or headers
@@ -78,44 +80,11 @@ A short personal detour.
 
 When the SPARQL package was young, I was asked to write a tutorial-type of blog post for the then active [Linked Science](http://linkedscience.org/about/) titled [An interactive R Shiny application on data.aalto.fi lectures](http://linkedscience.org/tutorials/an-interactive-r-shiny-application-on-data-aalto-fi-lectures/) Just about everything described in and linked from that text is today outdated and/or broken, although the core idea might still have some value. 2013 was really the year of SPARQL, and ditto the EU. For example, I spent a fair amount of time collecting information about Finnish AV resources in [Europeana](https://www.europeana.eu/en), resulting to few blog postings in [March 2013](http://tuijasonkkila.fi/blog/2013/03/) (en/fi).
 
-[Registering a custom language engine](https://bookdown.org/yihui/rmarkdown-cookbook/custom-engine.html) in R Markdown is a novel concept to me. What it does is that it defines a chunk of code that you can then run via a function call from another chunk. Very handy. 
+[Registering a custom language engine](https://bookdown.org/yihui/rmarkdown-cookbook/custom-engine.html) in R Markdown is a novel concept to me. What it does is that it defines a chunk of code that you can then run via a function call from another chunk. Very handy. Recently, André Ourednik published an R package [SPARQLchunks](https://github.com/aourednik/SPARQLchunks) that allows you to run SPARQL chunks in Rmarkdown files without coding the chunk itself. All you need to do, is define a result variable, and the SPARQL endpoint.
 
-The `knit_engines$set` code below is verbatim from André.
+My SPARQL query is a simplified version of Selja's [financial_domain_sparql_2019-01-07.rq](https://github.com/seljaseppala/eu_corpus_compiler/blob/master/queries/sparql_queries/financial_domain_sparql_2019-01-07.rq), with a different set of EUROVOC descriptors.
 
-```{r, attr.source='.numberLines'}
-library(httr)
-library(magrittr)
-library(xml2)
-library(data.table)
-
-knitr::knit_engines$set(sparql = function(options) {
-  code <- paste(options$code, collapse = '\n')
-  ep<- options$endpoint
-  qm <- paste(ep, "?", "query", "=", gsub("\\+", "%2B", URLencode(code, reserved = TRUE)), "", sep = "")
-  varname <- options$output.var
-  if(is.null(options$output.type)) {
-    output_type <- "csv"
-  } else {
-    output_type <- options$output.type
-  }
-  if (output_type=="list") {
-    out <- GET(qm,timeout(60)) %>% read_xml() %>% as_list()
-    nresults <- length(out$sparql$results)
-  } else {
-    queryres_csv <- GET(qm,timeout(60), add_headers(c(Accept = "text/csv")))
-    out <- queryres_csv$content %>% rawToChar %>% textConnection %>% read.csv
-    nresults <- nrow(out)
-  }
-  chunkout <- ifelse(!is.null(varname),qm,out)
-  text <- paste("The SPARQL query returned",nresults,"results")
-  if (!is.null(varname)) assign(varname, out, envir = knitr::knit_global())
-  knitr::engine_output(options, options$code, chunkout, extra=text)
-})
-```
-
-The SPARQL query is a simplified version of Selja's [financial_domain_sparql_2019-01-07.rq](https://github.com/seljaseppala/eu_corpus_compiler/blob/master/queries/sparql_queries/financial_domain_sparql_2019-01-07.rq), with a different set of EUROVOC descriptors.
-
-```{sparql output.var ="queryres_csv", endpoint = "http://publications.europa.eu/webapi/rdf/sparql"}
+```{sparql output.var ="queryres_csv", endpoint = "http://publications.europa.eu/webapi/rdf/sparql", results="hide"}
 PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
@@ -166,12 +135,15 @@ OFFSET 0
 The result needs a fair bit of work before product names are nice and clean. This is a modest start.
 
 ```{r, attr.source='.numberLines'}
-queryres_csv <- read.csv("res.csv")
+
+write.csv(queryres_csv, "queryres.csv")
+
+queryres_csv <- read.csv("queryres.csv")
 
 cleaned <- queryres_csv %>% 
   mutate(product = stringr::str_trim(product),
-         product = gsub("^1d", "", product), 
-         product = gsub("â€˜?", "", product),
+         product = gsub("^1d|â€˜?|", "", product), 
+        # product = gsub("â€˜?", "", product),
          product = gsub("Ã¶", "ö", product),
          product = gsub("Ã¤", "ä", product),
          product = gsub("Ã¥", "å", product)) %>% 
@@ -210,6 +182,7 @@ Selja Seppälä has Python code that returns a zipped bundle of XML files by Cel
 
 ```{r}
 library(reticulate)
+py_install("requests")
 ```
 
 ```{python}
@@ -277,7 +250,7 @@ The relevant XML element is `REF.DOC.OJ`, usually as a child element of `ACT/PRE
 * First page, assuming here that the first page <10 (which is not always the case)
   + `concat("000", //REF.DOC.OJ[@COLL='C']/@PAGE.FIRST, "_01")`
 
-Example from `data/L_2009112EN.01000301.xml` about *Lapin Poron liha*, meat of Lapland reindeer.
+Example from `data/L_2009112EN.01000301.xml` about **Lapin Poron liha**, meat of Lapland reindeer.
 
 `<REF.DOC.OJ COLL="C" DATE.PUB="20080125" NO.OJ="019" PAGE.FIRST="22">OJ C 19, 25.1.2008, p. 22</REF.DOC.OJ>`
 
@@ -401,3 +374,7 @@ shinyApp(
 ## Code
 
 The original R Markdown document of this HTML is in [GitHub](https://github.com/tts/eu_pdo/blob/main/eu_pdo.Rmd).
+
+## Notes
+
+^1^ The quoted text is from the previous version of the page in question.
