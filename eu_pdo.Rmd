@@ -8,6 +8,7 @@ output:
     code_folding: hide
     toc: yes
     toc_float: yes
+    fig_caption: FALSE
 resource_files:
 - cheese.jpg
 ---
@@ -28,7 +29,7 @@ library(SPARQLchunks)
 
 ## There is cheese and cheese
 
-![Cheese](cheese.jpg)
+![A slice of Spanish cheese from La Mancha region made of sheep milk and with truffle strains, together with an axe shaped cheese knife with a wooden handle](cheese.jpg)
 You never know when a small piece of casual information develops to a journey into something a lot bigger. This time, it was a remark by a local cheese seller. 
 
 The other day, I went to buy a slice of *truffle Manchego*, a cheese variety you'll find multiple hits when searching. A delicious type of Spanish cheese with distinctive, irregular dark strains of truffle.
@@ -311,7 +312,7 @@ So far so good - but then I noticed that a few of the URLs were not correct. Aft
 
 Switching to this new format had some consequences to the final HTML rendering below. The `iframe` solution I already had in place, i.e. the EU publication page was embedded, became now impossible due to the [X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options) defined by this domain. So, no embedding, only a link to follow.
 
-![](xframe.png)
+![Browser developer tools showing the X-Frame-Options value in Network>Headers](xframe.png)
 
 
 ```{r, attr.source='.numberLines'}
