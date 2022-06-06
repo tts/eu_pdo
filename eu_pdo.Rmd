@@ -143,8 +143,7 @@ queryres_csv <- read.csv("queryres.csv")
 
 cleaned <- queryres_csv %>% 
   mutate(product = stringr::str_trim(product),
-         product = gsub("^1d|â€˜?|", "", product), 
-        # product = gsub("â€˜?", "", product),
+         product = gsub("^1d|â€˜?", "", product), 
          product = gsub("Ã¶", "ö", product),
          product = gsub("Ã¤", "ä", product),
          product = gsub("Ã¥", "å", product)) %>% 
@@ -183,7 +182,8 @@ Selja Seppälä has Python code that returns a zipped bundle of XML files by Cel
 
 ```{r}
 library(reticulate)
-py_install("requests")
+
+#py_install("requests")
 ```
 
 ```{python}
