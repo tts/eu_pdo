@@ -180,7 +180,7 @@ ids <- cleaned %>%
 
 Selja Seppälä has Python code that returns a zipped bundle of XML files by Cellar ID. I'll simplify her [process_range](https://github.com/seljaseppala/eu_corpus_compiler/blob/master/get_cellar_docs.py#L73) function, and download files.
 
-```{r}
+```{r, eval = FALSE}
 library(reticulate)
 
 #py_install("requests")
