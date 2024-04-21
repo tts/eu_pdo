@@ -180,13 +180,13 @@ ids <- cleaned %>%
 
 Selja Seppälä has Python code that returns a zipped bundle of XML files by Cellar ID. I'll simplify her [process_range](https://github.com/seljaseppala/eu_corpus_compiler/blob/master/get_cellar_docs.py#L73) function, and download files.
 
-```{r, eval = FALSE}
+```{r eval=FALSE, include=FALSE}
 library(reticulate)
 
 #py_install("requests")
 ```
 
-```{python, eval=FALSE}
+```{python eval=FALSE, include=FALSE}
 import os
 import pandas as pd
 import zipfile
@@ -194,7 +194,7 @@ import requests
 import io
 ```
 
-```{python, attr.source='.numberLines', eval = FALSE}
+```{python eval=FALSE, attr.source='.numberLines', include=FALSE}
 
 def rest_get_call(id):
   url = 'http://publications.europa.eu/resource/cellar/' + id
@@ -230,7 +230,7 @@ def process_range(df, folder_path):
             
 ```
 
-```{python, eval = FALSE}
+```{python eval=FALSE, include=FALSE}
 id_df = r.ids
 
 process_range(id_df, "data")
