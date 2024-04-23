@@ -6,11 +6,13 @@ output:
   html_document:
     highlight: tango
     code_folding: hide
-    toc: yes
-    toc_float: yes
-    fig_caption: FALSE
+    toc: true
+    toc_float: true
+    fig_caption: false
 resource_files:
 - cheese.jpg
+- xframe.png
+- pdo_info.csv
 ---
 
 <style type="text/css">
@@ -19,12 +21,13 @@ resource_files:
 }
 </style>
 
-```{r include = FALSE}
-knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = FALSE)
-knitr::knit_engines$set(sparql = SPARQLchunks::eng_sparql)
+```{r, setup, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 library(dplyr)
 library(SPARQLchunks)
+
+knitr::knit_engines$set(sparql = SPARQLchunks::eng_sparql)
 ```
 
 ## There is cheese and cheese
@@ -85,7 +88,9 @@ When the SPARQL package was young, I was asked to write a tutorial-type of blog 
 
 My SPARQL query is a simplified version of Selja's [financial_domain_sparql_2019-01-07.rq](https://github.com/seljaseppala/eu_corpus_compiler/blob/master/queries/sparql_queries/financial_domain_sparql_2019-01-07.rq), with a different set of EUROVOC descriptors.
 
-```{sparql output.var ="queryres_csv", endpoint = "http://publications.europa.eu/webapi/rdf/sparql", results="hide"}
+```
+#{sparql, query, output.var ="queryres_csv", endpoint = "http://publications.europa.eu/webapi/rdf/sparql", results="hide", eval = FALSE}
+
 PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
@@ -135,7 +140,7 @@ OFFSET 0
 
 The result needs a fair bit of work before product names are nice and clean. This is a modest start.
 
-```{r, attr.source='.numberLines'}
+```{r, clean, eval=FALSE, attr.source='.numberLines'}
 
 write.csv(queryres_csv, "queryres.csv")
 
@@ -170,7 +175,7 @@ Let's make life easier, and subset data just to Finnish and Swedish products (pl
 
 Why Finland and Sweden? Well, [why not](https://www.nato.int/cps/en/natohq/news_195468.htm)?
 
-```{r, attr.source='.numberLines'}
+```{r, filtsel, eval=FALSE, attr.source='.numberLines'}
 ids <- cleaned %>% 
   dplyr::filter(grepl("Lapin|Kitkan|Wrångebäcksost|Vänerlöjrom|Hånnlamb|Upplandskubb|Kalix Löjrom|Manchego", product)) %>% 
   dplyr::select(cellarURIs) %>% 
@@ -180,13 +185,11 @@ ids <- cleaned %>%
 
 Selja Seppälä has Python code that returns a zipped bundle of XML files by Cellar ID. I'll simplify her [process_range](https://github.com/seljaseppala/eu_corpus_compiler/blob/master/get_cellar_docs.py#L73) function, and download files.
 
-```{r eval=FALSE, include=FALSE}
+```{r, startpy, eval = FALSE}
 library(reticulate)
-
-#py_install("requests")
 ```
 
-```{python eval=FALSE, include=FALSE}
+```{python, libs, eval=FALSE}
 import os
 import pandas as pd
 import zipfile
@@ -194,7 +197,7 @@ import requests
 import io
 ```
 
-```{python eval=FALSE, attr.source='.numberLines', include=FALSE}
+```{python, func, eval=FALSE, attr.source='.numberLines'}
 
 def rest_get_call(id):
   url = 'http://publications.europa.eu/resource/cellar/' + id
@@ -202,7 +205,7 @@ def rest_get_call(id):
     'Accept': "application/zip;mtype=fmx4, application/xml;mtype=fmx4, application/xhtml+xml, text/html, text/html;type=simplified, application/msword, text/plain, application/xml;notice=object",
     'Accept-Language': "eng",
     'Content-Type': "application/x-www-form-urlencoded",
-    'Host': "publications.europa.eu"#
+    'Host': "publications.europa.eu"
     }
   response = requests.request("GET", url, headers=headers)
   return response
@@ -230,7 +233,7 @@ def process_range(df, folder_path):
             
 ```
 
-```{python eval=FALSE, include=FALSE}
+```{python, process, eval=FALSE}
 id_df = r.ids
 
 process_range(id_df, "data")
@@ -259,7 +262,7 @@ The TOC link would be [http://publications.europa.eu/resource/oj/JOC_2008_019_R_
 
 ## Parsing XML
 
-```{r, attr.source='.numberLines'}
+```{r, parsing, eval=FALSE, attr.source='.numberLines'}
 library(xml2)
 
 parsexml <- function(file) {
@@ -280,7 +283,7 @@ parsexml <- function(file) {
 
 Next I'll loop over all XML files in the `data` sub-directory, gather all basic information, and then build the URLs.
 
-```{r, attr.source='.numberLines'}
+```{r, urlify, eval=FALSE, attr.source='.numberLines'}
 
 pdo_info <- list.files(path = "./data/", pattern = "*[0-9].xml", full.names = TRUE) %>% 
   purrr::map_dfr(~parsexml(.)) %>% 
@@ -315,7 +318,7 @@ Switching to this new format had some consequences to the final HTML rendering b
 ![Browser developer tools showing the X-Frame-Options value in Network>Headers](xframe.png)
 
 
-```{r, attr.source='.numberLines'}
+```{r, readin, attr.source='.numberLines'}
 pdo_info <- read.csv("pdo_info.csv", 
                      stringsAsFactors = FALSE, 
                      colClasses = rep("character", 10))
@@ -333,7 +336,7 @@ write.csv(pdo_info, "pdo_info.csv", row.names = FALSE)
 With this new set of URLs available, the simple Shiny app below lets us now to select one product at a time, open its page in a new browser tab, and read all the amazing details. 
 
 ## App
-```{r echo=FALSE, eval=TRUE}
+```{r, theapp, echo=FALSE}
 pdo_info <- read.csv("pdo_info.csv", 
                      stringsAsFactors = FALSE, 
                      colClasses = rep("character", 11))
